@@ -1,6 +1,30 @@
+#include <assert.h>
+
+#include "endianness.h"
+
 #include "lua5.3/lua.h"
 #include "lua5.3/lauxlib.h"
+
 #include "cb0r.h"
+
+#define BYTESWAP(val) _Generic((val), uint32_t: ntoh32(val), uint64_t: ntoh64(val))
+
+#define PUSH_INT_AS_FLOAT(L, cbor_val, int_type, float_type)      \
+	{                                                             \
+		assert(sizeof(float_type) == sizeof(int_type));           \
+		union                                                     \
+		{                                                         \
+			uint8_t u8[sizeof(float_type)];                       \
+			int_type int_val;                                     \
+		} data;                                                   \
+		assert(cbor_val.length == sizeof data.u8);                \
+		memcpy(&data.u8, cb0r_value(&cbor_val), cbor_val.length); \
+		/* Reverse byte order if necessary. */                    \
+		int_type int_val = BYTESWAP(data.int_val);                \
+		float_type f;                                             \
+		memcpy(&f, &int_val, sizeof f);                           \
+		lua_pushnumber(L, (lua_Number)f);                         \
+	}
 
 static const uint8_t * lua_push_cb0r(
 	lua_State * L,
@@ -9,7 +33,10 @@ static const uint8_t * lua_push_cb0r(
 ) {
 	cb0r_s val;
 	cb0r((uint8_t *) start, (uint8_t *) end, 0, &val);
-	const uint8_t * const val_end = val.end < end ? val.end : end;
+	if (val.end > end) {
+		return luaL_error(L, "not enough bytes after header"), NULL;
+	}
+	const uint8_t * const val_end = val.end;
 	switch (val.type) {
 		case CB0R_INT:
 			// TODO: Check for overflow in case of lua_Integer smaller than uint64_t.
@@ -33,7 +60,7 @@ static const uint8_t * lua_push_cb0r(
 			const uint8_t * item_start = cb0r_value(&val);
 			for (uint64_t i = 0; i < val.length; ++i) {
 				item_start = lua_push_cb0r(L, item_start, val_end);
-				lua_seti(L, -2, (lua_Integer) i + 1);
+				lua_rawseti(L, -2, (lua_Integer) i + 1);
 			}
 			break;
 		}
@@ -62,10 +89,10 @@ static const uint8_t * lua_push_cb0r(
 				case 2:
 					return luaL_error(L, "unhandleable type"), NULL;
 				case 4:
-					lua_pushnumber(L, *(float *) &val.value);
+					PUSH_INT_AS_FLOAT(L, val, uint32_t, float);
 					break;
 				case 8:
-					lua_pushnumber(L, *(double *) &val.value);
+					PUSH_INT_AS_FLOAT(L, val, uint64_t, double);
 					break;
 			}
 			break;
