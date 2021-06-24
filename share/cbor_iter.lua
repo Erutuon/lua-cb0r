@@ -1,25 +1,25 @@
 local cb0r_decode = require "cb0r"
 local function cbor_pdecode(...)
-	local ok, res, pos = pcall(cb0r_decode, ...)
-	if ok then
-		return res, pos
-	else -- res is error
-		return nil, nil, res
-	end
+    local ok, res, pos = pcall(cb0r_decode, ...)
+    if ok then
+        return res, pos
+    else -- res is error
+        return nil, nil, res
+    end
 end
 
 assert(_VERSION:match "^Lua 5%.[34]$")
 
 local function iter_string(cbor_string)
-	local pos = 1
-	return function(...)
-		if ... then
-			return pos
-		end
-		local val
-		val, pos = cb0r_decode(cbor_string, pos)
-		return val
-	end
+    local pos = 1
+    return function(...)
+        if ... then
+            return pos
+        end
+        local val
+        val, pos = cb0r_decode(cbor_string, pos)
+        return val
+    end
 end
 
 local function iter_file(path, chunk_size)
@@ -28,7 +28,7 @@ local function iter_file(path, chunk_size)
     local retries = 0
     local chunk_count = 0
     local total_bytes = 0
-	local max_retries = 1000
+    local max_retries = 1000
 
     assert(math.type(chunk_size) == "integer")
     local file = assert(io.open(path, "rb"))
@@ -52,9 +52,9 @@ local function iter_file(path, chunk_size)
         if not chunk then
             chunk = read_chunk()
         end
-		
-		local retry = false
-		local current_retries = 0
+        
+        local retry = false
+        local current_retries = 0
         local success_count = 0
         
         while true do
@@ -75,15 +75,15 @@ local function iter_file(path, chunk_size)
                 else
                     chunk = chunk:sub(pos, -1) .. read_chunk()
                     pos = 1
-					if retry then
-						retries = retries + 1
-						current_retries = current_retries + 1
-						if current_retries > max_retries then
-							return nil, "too many retries"
-						end
-					else
-						retry = true
-					end
+                    if retry then
+                        retries = retries + 1
+                        current_retries = current_retries + 1
+                        if current_retries > max_retries then
+                            return nil, "too many retries"
+                        end
+                    else
+                        retry = true
+                    end
                 end
             end
         end
