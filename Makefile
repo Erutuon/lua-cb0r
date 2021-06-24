@@ -24,7 +24,7 @@ CB0R_SRCDIR = $(CB0R_DIR)/src
 LIB_OUTDIR = lib
 CB0R_SO = $(LIB_OUTDIR)/cb0r.so
 
-$(CB0R_SO): src/lua-cb0r.c
+$(CB0R_SO): src/lua-cb0r.c src/endianness.h src/half_precision_float.h $(CB0R_SRCDIR)/cb0r.h
 	mkdir -p $(LIB_OUTDIR)
 	$(CC) -shared $(CFLAGS) -I $(CB0R_INCDIR) -I src $(LIBFLAGS) $(CB0R_SRCDIR)/cb0r.c src/lua-cb0r.c -o $(CB0R_SO)
 
