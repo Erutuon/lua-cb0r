@@ -1,6 +1,7 @@
 #include <assert.h>
 
 #include "endianness.h"
+#include "half_precision_float.h"
 
 #include "lua5.3/lua.h"
 #include "lua5.3/lauxlib.h"
@@ -86,8 +87,11 @@ static const uint8_t * lua_push_cb0r(
 		case CB0R_UNDEF: return luaL_error(L, "unhandleable type"), NULL;
 		case CB0R_FLOAT: {
 			switch (val.length) {
-				case 2:
-					return luaL_error(L, "unhandleable type"), NULL;
+				case 2: {
+					double half_float_val = decode_half(cb0r_value(&val));
+					lua_pushnumber(L, (lua_Number)half_float_val);
+					break;
+				}
 				case 4:
 					PUSH_INT_AS_FLOAT(L, val, uint32_t, float);
 					break;
