@@ -1,5 +1,5 @@
 local cb0r_decode = require "cb0r"
-function cbor_pdecode(...)
+local function cbor_pdecode(...)
 	local ok, res, pos = pcall(cb0r_decode, ...)
 	if ok then
 		return res, pos
@@ -17,7 +17,7 @@ local function iter_string(cbor_string)
 			return pos
 		end
 		local val
-		val, pos = cbor.decode(cbor_string, pos)
+		val, pos = cb0r_decode(cbor_string, pos)
 		return val
 	end
 end
@@ -55,6 +55,7 @@ local function iter_file(path, chunk_size)
 		
 		local retry = false
 		local current_retries = 0
+        local success_count = 0
         
         while true do
             local val, new_pos, error = cbor_pdecode(chunk, pos)
@@ -65,6 +66,7 @@ local function iter_file(path, chunk_size)
             if val and new_pos > pos and new_pos <= #chunk + 1 then
                 max_page_cbor_len = math.max(max_page_cbor_len, new_pos - pos)
                 pos = new_pos
+                success_count = success_count + 1
                 return val
             else
                  -- error decoding; read more if there's more to read
@@ -77,7 +79,6 @@ local function iter_file(path, chunk_size)
 						retries = retries + 1
 						current_retries = current_retries + 1
 						if current_retries > max_retries then
-							print(chunk:sub(pos))
 							return nil, "too many retries"
 						end
 					else
