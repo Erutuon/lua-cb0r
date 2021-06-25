@@ -2,4 +2,12 @@
 *.a
 *.d
 *.i
+*.o
 lib
+test/*
+!test/test.lua
+zig-cache
+.gdb_history
+*.Identifier
+.vscode
+bin
