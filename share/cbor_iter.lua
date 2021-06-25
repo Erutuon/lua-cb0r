@@ -8,8 +8,6 @@ local function cbor_pdecode(...)
     end
 end
 
-assert(_VERSION:match "^Lua 5%.[34]$")
-
 local function iter_string(cbor_string)
     local pos = 1
     return function(...)
