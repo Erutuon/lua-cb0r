@@ -11,3 +11,4 @@ zig-cache
 *.Identifier
 .vscode
 bin
+*.rock
