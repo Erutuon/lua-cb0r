@@ -24,7 +24,7 @@ end
 
 local function assert(bool, ...)
     if not bool then
-        io.stderr:write(...)
+        io.stderr:write(debug.traceback(nil, 3), "\n")
     else
         successes = successes + 1
     end
@@ -44,6 +44,16 @@ local function test_string(cbor, expected)
     assert(string_val == expected)
 end
 
+local function test_array(cbor, length)
+    local array_val = cb0r_decode(cbor)
+    assert(#array_val == length)
+end
+
+local function assert_parse_failure(cbor)
+    local ok, val = pcall(cb0r_decode, cbor)
+    assert(not ok, require "inspect"(val))
+end
+
 -- unsigned integers
 
 test_number("01", 1)
@@ -59,6 +69,26 @@ test_string(string.char(0x60 + #hello) .. hello, hello)
 test_string("\x78" .. string.char(#hello) .. hello, hello)
 test_string("\x79\0" .. string.char(#hello) .. hello, hello)
 test_string("\x7A" .. ("\0"):rep(3) .. string.char(#hello) .. hello, hello)
+
+-- string with too-short header
+
+assert_parse_failure("\x79") -- 0 length bytes, expected 1
+
+assert_parse_failure("\x7A") -- 0 length bytes, expected 3
+assert_parse_failure("\x7A\0") -- 1 length byte, expected 3
+assert_parse_failure("\x7A\0\0") -- 2 length bytes, expected 3
+
+-- array with too-short header
+
+assert_parse_failure(decode_hex "98") -- 0 length bytes, expected 1
+
+assert_parse_failure(decode_hex "99 01") -- 1 length byte, expected 2
+
+assert_parse_failure(decode_hex "9A") -- 0 length bytes, expected 4
+assert_parse_failure(decode_hex "9A  01") -- 1 length byte, expected 4
+assert_parse_failure(decode_hex "9A  01 02") -- 2 length bytes, expected 4
+assert_parse_failure(decode_hex "9A  01 02 03") -- 3 length bytes, expected 4
+test_array(decode_hex "9A  00 00 00 01  01", 1)
 
 -- cb0r doesn't handle strings with 8-byte lengths.
 -- test_string("\x7B" .. ("\0"):rep(7) .. string.char(#hello) .. hello, hello)

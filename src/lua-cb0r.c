@@ -34,6 +34,9 @@ static const uint8_t * lua_push_cb0r(
 ) {
 	cb0r_s val;
 	cb0r((uint8_t *) start, (uint8_t *) end, 0, &val);
+	if (start + val.header > end) {
+		return luaL_error(L, "not enough bytes for header"), NULL;
+	}
 	if (val.end > end) {
 		return luaL_error(L, "not enough bytes after header"), NULL;
 	}
@@ -52,8 +55,8 @@ static const uint8_t * lua_push_cb0r(
 			break;
 		}
 		case CB0R_BYTE: case CB0R_UTF8:
-			if (val.end > end)
-				return luaL_error(L, "string too long"), NULL;
+			if (cb0r_value(&val) + cb0r_vlen(&val) > end)
+				return luaL_error(L, "string length greater than length of CBOR"), NULL;
 			lua_pushlstring(L, (const char *) cb0r_value(&val), cb0r_vlen(&val));
 			break;
 		case CB0R_ARRAY: {
